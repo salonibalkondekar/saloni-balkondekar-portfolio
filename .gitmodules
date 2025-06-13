@@ -1,0 +1,6 @@
+[submodule "saloni-balkondekar-website"]
+	path = saloni-balkondekar-website
+	url = https://github.com/salonibalkondekar/saloni-balkondekar-website.git
+[submodule "text-to-cad"]
+	path = text-to-cad
+	url = https://github.com/salonibalkondekar/text-to-cad.git

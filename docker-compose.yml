@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  #--- Text-to-CAD Application Services ---#
+
+  # Service for the text-to-cad backend (Python/API)
+  backend:
+    build:
+      context: ./text-to-cad/backend
+    env_file: ./.env  # Variables for the backend will be in this file
+    restart: unless-stopped
+    # No 'ports' are exposed. Communication happens over the private Docker network.
+
+  # Service for the text-to-cad frontend (Vue/React)
+  frontend:
+    build:
+      context: ./text-to-cad/frontend
+    environment:
+      # This tells the frontend container how to reach the backend container.
+      # 'backend' is the service name, and 8000 is the port the backend app listens on.
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+    # No 'ports' are exposed. The proxy will handle all incoming traffic.
+
+  #--- Personal Portfolio Website Service ---#
+
+  # Service for your personal website (salonibalkondekar.codes)
+  portfolio:
+    build:
+      # This points to the Dockerfile inside your submodule folder.
+      context: ./saloni-balkondekar-website
+    restart: unless-stopped
+    # No 'ports' are exposed. The proxy handles it.
+
+  #--- The Public-Facing Reverse Proxy ---#
+
+  # The Nginx reverse proxy that routes traffic to the correct service.
+  # This is the ONLY service that exposes ports to the internet.
+  proxy:
+    build:
+      context: ./nginx-proxy
+    ports:
+      - "80:80"    # For initial HTTP traffic and Let's Encrypt validation
+      - "443:443"  # For final HTTPS traffic
+    volumes:
+      # We mount the Let's Encrypt directory from the host machine into the container.
+      # This allows Nginx to find the SSL certificates that Certbot creates.
+      # The ':ro' makes it read-only for better security.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - frontend
+      - portfolio
+    restart: unless-stopped
