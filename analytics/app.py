@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session as DBSession
 import time
 
 from config import settings
-from database import init_db, get_db, User, AdminLog
+from database import init_db, get_db, User, AdminLog, GeneratedModel
 from auth import (
     SessionManager, RateLimiter, get_current_session, 
     require_session, check_admin_password, generate_csrf_token
@@ -26,6 +26,19 @@ from migration import migrate_existing_data
 class PageViewRequest(BaseModel):
     site: str
     path: str
+
+
+class ModelStoreRequest(BaseModel):
+    model_id: str
+    prompt: str
+    generated_code: str
+    stl_file_path: str
+    stl_file_size: int
+    generation_time_ms: int
+    ai_generation_time_ms: Optional[int] = None
+    execution_time_ms: Optional[int] = None
+    success: bool = True
+    error_message: Optional[str] = None
 
 
 # Create FastAPI app
@@ -127,7 +140,7 @@ async def track_pageview(
 async def track_cad_event(
     request: Request,
     event_data: Dict[str, Any],
-    session: Dict = Depends(require_session),
+    session: Session = Depends(require_session),
     db: DBSession = Depends(get_db)
 ):
     """Track CAD generation event"""
@@ -148,10 +161,73 @@ async def track_cad_event(
         success=event_data.get("success", True),
         error_message=event_data.get("error_message"),
         duration_ms=int((time.time() - start_time) * 1000),
-        model_size_bytes=event_data.get("model_size_bytes")
+        model_size_bytes=event_data.get("model_size_bytes"),
+        model_id=event_data.get("model_id"),
+        stl_file_path=event_data.get("stl_file_path")
     )
     
     return {"success": True}
+
+
+@app.post("/models/store")
+async def store_model(
+    request: Request,
+    model_data: ModelStoreRequest,
+    session: Session = Depends(require_session),
+    db: DBSession = Depends(get_db)
+):
+    """Store a generated model with metadata"""
+    AnalyticsTracker.store_generated_model(
+        db=db,
+        model_id=model_data.model_id,
+        user_id=session.user_id,
+        session_id=session.id,
+        prompt=model_data.prompt,
+        generated_code=model_data.generated_code,
+        stl_file_path=model_data.stl_file_path,
+        stl_file_size=model_data.stl_file_size,
+        generation_time_ms=model_data.generation_time_ms,
+        ai_generation_time_ms=model_data.ai_generation_time_ms,
+        execution_time_ms=model_data.execution_time_ms,
+        success=model_data.success,
+        error_message=model_data.error_message
+    )
+    
+    return {"success": True}
+
+
+@app.post("/models/{model_id}/download")
+async def track_model_download(
+    model_id: str,
+    db: DBSession = Depends(get_db)
+):
+    """Track when a model is downloaded"""
+    AnalyticsTracker.track_model_download(db, model_id)
+    return {"success": True}
+
+
+@app.get("/models/{model_id}")
+async def get_model_info(
+    model_id: str,
+    db: DBSession = Depends(get_db)
+):
+    """Get model information"""
+    model = db.query(GeneratedModel).filter(GeneratedModel.id == model_id).first()
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    
+    return {
+        "id": model.id,
+        "user_id": model.user_id,
+        "timestamp": model.timestamp.isoformat(),
+        "prompt": model.prompt,
+        "generated_code": model.generated_code,
+        "stl_file_path": model.stl_file_path,
+        "stl_file_size": model.stl_file_size,
+        "generation_time_ms": model.generation_time_ms,
+        "success": model.success,
+        "download_count": model.download_count
+    }
 
 
 # Session management endpoints
@@ -229,7 +305,7 @@ async def create_session(
 async def destroy_session(
     request: Request,
     response: Response,
-    session: Dict = Depends(get_current_session),
+    session: Session = Depends(get_current_session),
     db: DBSession = Depends(get_db)
 ):
     """Destroy current session"""
@@ -244,7 +320,7 @@ async def destroy_session(
 
 @app.get("/auth/current-user")
 async def get_current_user(
-    session: Dict = Depends(require_session),
+    session: Session = Depends(require_session),
     db: DBSession = Depends(get_db)
 ):
     """Get current user info"""
@@ -369,6 +445,65 @@ async def get_admin_users(
     ]
 
 
+@app.get("/admin/models")
+async def get_admin_models(
+    password: str = None,
+    limit: int = 50,
+    db: DBSession = Depends(get_db)
+):
+    """Get recent models (requires admin password)"""
+    if not password or not check_admin_password(password):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    models = db.query(GeneratedModel).order_by(GeneratedModel.timestamp.desc()).limit(limit).all()
+    
+    return [
+        {
+            "id": model.id,
+            "user_id": model.user_id,
+            "timestamp": model.timestamp.isoformat(),
+            "prompt": model.prompt[:100] + "..." if len(model.prompt) > 100 else model.prompt,
+            "stl_file_size": model.stl_file_size,
+            "generation_time_ms": model.generation_time_ms,
+            "success": model.success,
+            "download_count": model.download_count
+        }
+        for model in models
+    ]
+
+
+@app.get("/admin/models/{model_id}/details")
+async def get_model_details(
+    model_id: str,
+    password: str = None,
+    db: DBSession = Depends(get_db)
+):
+    """Get detailed model information (requires admin password)"""
+    if not password or not check_admin_password(password):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    model = db.query(GeneratedModel).filter(GeneratedModel.id == model_id).first()
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    
+    return {
+        "id": model.id,
+        "user_id": model.user_id,
+        "session_id": model.session_id,
+        "timestamp": model.timestamp.isoformat(),
+        "prompt": model.prompt,
+        "generated_code": model.generated_code,
+        "stl_file_path": model.stl_file_path,
+        "stl_file_size": model.stl_file_size,
+        "generation_time_ms": model.generation_time_ms,
+        "ai_generation_time_ms": model.ai_generation_time_ms,
+        "execution_time_ms": model.execution_time_ms,
+        "success": model.success,
+        "error_message": model.error_message,
+        "download_count": model.download_count
+    }
+
+
 @app.post("/admin/reset-user-count")
 async def reset_user_count(
     user_id: str,
@@ -403,7 +538,7 @@ async def reset_user_count(
 @app.post("/users/increment-count")
 async def increment_user_count(
     user_id: str,
-    session: Dict = Depends(require_session),
+    session: Session = Depends(require_session),
     db: DBSession = Depends(get_db)
 ):
     """Increment user's model count"""

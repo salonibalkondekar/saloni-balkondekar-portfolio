@@ -312,6 +312,31 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Recent Generated Models -->
+            <div class="section">
+                <h2>Recent Generated Models</h2>
+                <div class="table-responsive">
+                    <table id="modelsTable">
+                        <thead>
+                            <tr>
+                                <th>Model ID</th>
+                                <th>User</th>
+                                <th>Prompt</th>
+                                <th>Size</th>
+                                <th>Generation Time</th>
+                                <th>Downloads</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="9" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -388,6 +413,12 @@
                 .then(response => response.json())
                 .then(users => updateUsersTable(users))
                 .catch(error => console.error('Error fetching users:', error));
+
+            // Fetch models
+            fetch(`/admin/models?password=${encodeURIComponent(adminPassword)}&limit=20`)
+                .then(response => response.json())
+                .then(models => updateModelsTable(models))
+                .catch(error => console.error('Error fetching models:', error));
         }
 
         function updatePageViewsChart(viewsBySite) {
@@ -478,6 +509,73 @@
                     </div>
                 `;
             });
+        }
+
+        function updateModelsTable(models) {
+            const tbody = document.querySelector('#modelsTable tbody');
+            tbody.innerHTML = '';
+            
+            if (models.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9">No models</td></tr>';
+                return;
+            }
+            
+            models.forEach(model => {
+                const row = tbody.insertRow();
+                row.insertCell(0).innerHTML = `<code>${model.id.substring(0, 8)}...</code>`;
+                row.insertCell(1).textContent = model.user_id.substring(0, 10) + '...';
+                row.insertCell(2).textContent = model.prompt;
+                row.insertCell(3).textContent = formatBytes(model.stl_file_size);
+                row.insertCell(4).textContent = `${model.generation_time_ms}ms`;
+                row.insertCell(5).textContent = model.download_count;
+                
+                const statusCell = row.insertCell(6);
+                statusCell.innerHTML = model.success 
+                    ? '<span style="color: #4CAF50">Success</span>' 
+                    : '<span class="blocked">Failed</span>';
+                
+                const createdAt = new Date(model.timestamp);
+                row.insertCell(7).textContent = createdAt.toLocaleString();
+                
+                const actionsCell = row.insertCell(8);
+                actionsCell.innerHTML = `
+                    <div class="actions">
+                        <button class="btn action-btn" onclick="viewModelDetails('${model.id}')">View Details</button>
+                    </div>
+                `;
+            });
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function viewModelDetails(modelId) {
+            fetch(`/admin/models/${modelId}/details?password=${encodeURIComponent(adminPassword)}`)
+                .then(response => response.json())
+                .then(model => {
+                    const details = `
+                        Model ID: ${model.id}
+                        User: ${model.user_id}
+                        Prompt: ${model.prompt}
+                        Generated Code:
+                        ${model.generated_code}
+                        
+                        File Size: ${formatBytes(model.stl_file_size)}
+                        Generation Time: ${model.generation_time_ms}ms
+                        AI Time: ${model.ai_generation_time_ms || 'N/A'}ms
+                        Execution Time: ${model.execution_time_ms || 'N/A'}ms
+                        Downloads: ${model.download_count}
+                        Success: ${model.success}
+                        ${model.error_message ? 'Error: ' + model.error_message : ''}
+                    `;
+                    alert(details);
+                })
+                .catch(error => console.error('Error fetching model details:', error));
         }
 
         function resetUserCount(userId) {

@@ -131,7 +131,7 @@ class RateLimiter:
         return True
 
 
-def get_current_session(
+async def get_current_session(
     request: Request,
     db: DBSession = Depends(get_db)
 ) -> Optional[Session]:
@@ -143,7 +143,7 @@ def get_current_session(
     return SessionManager.get_session(db, session_id)
 
 
-def require_session(
+async def require_session(
     session: Optional[Session] = Depends(get_current_session)
 ) -> Session:
     """Require valid session"""

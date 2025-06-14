@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session as DBSession
 from sqlalchemy import func, and_
 from fastapi import Request
 
-from database import PageView, CADEvent, User, Session
+from database import PageView, CADEvent, User, Session, GeneratedModel
 
 
 class AnalyticsTracker:
@@ -51,7 +51,9 @@ class AnalyticsTracker:
         success: bool = True,
         error_message: Optional[str] = None,
         duration_ms: Optional[int] = None,
-        model_size_bytes: Optional[int] = None
+        model_size_bytes: Optional[int] = None,
+        model_id: Optional[str] = None,
+        stl_file_path: Optional[str] = None
     ) -> None:
         """Track CAD generation event"""
         event = CADEvent(
@@ -64,10 +66,57 @@ class AnalyticsTracker:
             error_message=error_message,
             duration_ms=duration_ms,
             model_size_bytes=model_size_bytes,
-            ip_address=ip_address
+            ip_address=ip_address,
+            model_id=model_id,
+            stl_file_path=stl_file_path
         )
         db.add(event)
         db.commit()
+    
+    @staticmethod
+    def store_generated_model(
+        db: DBSession,
+        model_id: str,
+        user_id: str,
+        session_id: str,
+        prompt: str,
+        generated_code: str,
+        stl_file_path: str,
+        stl_file_size: int,
+        generation_time_ms: int,
+        ai_generation_time_ms: Optional[int] = None,
+        execution_time_ms: Optional[int] = None,
+        success: bool = True,
+        error_message: Optional[str] = None
+    ) -> None:
+        """Store a generated model with all metadata"""
+        model = GeneratedModel(
+            id=model_id,
+            user_id=user_id,
+            session_id=session_id,
+            prompt=prompt,
+            generated_code=generated_code,
+            stl_file_path=stl_file_path,
+            stl_file_size=stl_file_size,
+            generation_time_ms=generation_time_ms,
+            ai_generation_time_ms=ai_generation_time_ms,
+            execution_time_ms=execution_time_ms,
+            success=success,
+            error_message=error_message
+        )
+        db.add(model)
+        db.commit()
+    
+    @staticmethod
+    def track_model_download(
+        db: DBSession,
+        model_id: str
+    ) -> None:
+        """Track when a model is downloaded"""
+        model = db.query(GeneratedModel).filter(GeneratedModel.id == model_id).first()
+        if model:
+            model.download_count += 1
+            db.commit()
     
     @staticmethod
     def get_page_view_stats(
