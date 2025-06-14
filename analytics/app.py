@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session as DBSession
 import time
 
 from config import settings
-from database import init_db, get_db, User, AdminLog, GeneratedModel
+from database import init_db, get_db, User, AdminLog, GeneratedModel, Session
 from auth import (
     SessionManager, RateLimiter, get_current_session, 
     require_session, check_admin_password, generate_csrf_token
@@ -29,6 +29,8 @@ class PageViewRequest(BaseModel):
 
 
 class ModelStoreRequest(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    
     model_id: str
     prompt: str
     generated_code: str
