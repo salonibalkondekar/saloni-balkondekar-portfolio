@@ -58,6 +58,26 @@ async def health_check():
     return {"status": "healthy", "service": settings.service_name}
 
 
+@app.post("/session")
+async def create_session(
+    request: Request,
+    response: Response,
+    db: DBSession = Depends(get_db)
+):
+    """Create a new anonymous session"""
+    session_manager = SessionManager()
+    
+    # Create anonymous session
+    session_data = session_manager.create_session(
+        response=response,
+        user_id=None,  # Anonymous session
+        user_name="Anonymous",
+        user_email=None
+    )
+    
+    return {"success": True, "session_id": session_data["session_id"]}
+
+
 # Tracking endpoints
 @app.post("/track/pageview")
 async def track_pageview(
