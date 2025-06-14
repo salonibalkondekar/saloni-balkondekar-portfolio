@@ -6,8 +6,25 @@
     // Determine site based on URL
     const site = window.location.pathname.startsWith('/text-to-cad') ? 'text-to-cad' : 'portfolio';
     
+    // Create session if needed
+    async function ensureSession() {
+        try {
+            const response = await fetch('/analytics/session', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            return response.ok;
+        } catch (err) {
+            console.error('Session creation error:', err);
+            return false;
+        }
+    }
+    
     // Track page view
-    function trackPageView() {
+    async function trackPageView() {
+        // Ensure session exists first
+        await ensureSession();
+        
         fetch('/analytics/track/pageview', {
             method: 'POST',
             headers: {

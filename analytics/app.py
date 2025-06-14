@@ -3,7 +3,7 @@ Analytics Service API
 """
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from fastapi import FastAPI, Request, Response, HTTPException, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
