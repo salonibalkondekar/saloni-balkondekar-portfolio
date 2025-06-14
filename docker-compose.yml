@@ -1,6 +1,48 @@
 version: '3.8'
 
 services:
+  #--- Database Service ---#
+  
+  # PostgreSQL for analytics and user data
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: analytics
+      POSTGRES_PASSWORD: analytics_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  #--- Analytics Service ---#
+  
+  # Analytics and session management service
+  analytics:
+    build:
+      context: ./analytics
+    env_file: ./.env
+    environment:
+      DATABASE_URL: postgresql://analytics:analytics_password@postgres:5432/analytics_db
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change_me_in_production}
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-here}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Mount the existing user data for migration
+      - ./text-to-cad/backend/collected_user_emails.json:/app/collected_user_emails.json:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   #--- Text-to-CAD Application Services ---#
 
   # Service for the text-to-cad backend (Python/API)
@@ -8,8 +50,21 @@ services:
     build:
       context: ./text-to-cad/backend
     env_file: ./.env  # Variables for the backend will be in this file
+    environment:
+      ANALYTICS_URL: http://analytics:8001
+    depends_on:
+      - analytics
+    volumes:
+      # Persistent storage for temp files
+      - backend_temp:/app/temp
     restart: unless-stopped
     # No 'ports' are exposed. Communication happens over the private Docker network.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Service for the text-to-cad frontend (Vue/React)
   frontend:
@@ -19,8 +74,10 @@ services:
       # This tells the frontend container how to reach the backend container.
       # 'backend' is the service name, and 8000 is the port the backend app listens on.
       - API_URL=http://backend:8000
+      - ANALYTICS_URL=http://analytics:8001
     depends_on:
       - backend
+      - analytics
     restart: unless-stopped
     # No 'ports' are exposed. The proxy will handle all incoming traffic.
 
@@ -52,4 +109,11 @@ services:
     depends_on:
       - frontend
       - portfolio
+      - analytics
     restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_temp:
+    driver: local
