@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from fastapi import FastAPI, Request, Response, HTTPException, Depends, Form
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from sqlalchemy.orm import Session as DBSession
@@ -19,6 +20,13 @@ from auth import (
 )
 from tracking import AnalyticsTracker
 from migration import migrate_existing_data
+
+
+# Pydantic models for request validation
+class PageViewRequest(BaseModel):
+    site: str
+    path: str
+
 
 # Create FastAPI app
 app = FastAPI(
@@ -68,22 +76,32 @@ async def create_session(
     session_manager = SessionManager()
     
     # Create anonymous session
-    session_data = session_manager.create_session(
-        response=response,
-        user_id=None,  # Anonymous session
-        user_name="Anonymous",
-        user_email=None
+    session_id = session_manager.create_session(
+        db=db,
+        user_id="anonymous",  # Anonymous session
+        email="anonymous@anonymous.com",
+        name="Anonymous",
+        request=request
     )
     
-    return {"success": True, "session_id": session_data["session_id"]}
+    # Set secure cookie
+    response.set_cookie(
+        key="session_id",
+        value=session_id,
+        httponly=True,
+        secure=True,  # HTTPS only
+        samesite="lax",
+        max_age=settings.session_expire_hours * 3600
+    )
+    
+    return {"success": True, "session_id": session_id}
 
 
 # Tracking endpoints
 @app.post("/track/pageview")
 async def track_pageview(
     request: Request,
-    site: str,
-    path: str,
+    pageview_data: PageViewRequest,
     db: DBSession = Depends(get_db)
 ):
     """Track a page view"""
@@ -99,7 +117,7 @@ async def track_pageview(
     
     # Track the view
     AnalyticsTracker.track_page_view(
-        db, request, site, path, session_id, user_id
+        db, request, pageview_data.site, pageview_data.path, session_id, user_id
     )
     
     return {"success": True}
