@@ -33,9 +33,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      # Mount the existing user data for migration
-      - ./text-to-cad/backend/collected_user_emails.json:/app/collected_user_emails.json:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
