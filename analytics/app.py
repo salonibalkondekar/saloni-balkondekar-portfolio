@@ -138,6 +138,73 @@ async def track_pageview(
     return {"success": True}
 
 
+@app.post("/track/link-click")
+async def track_link_click(
+    request: Request,
+    link_data: Dict[str, Any],
+    db: DBSession = Depends(get_db)
+):
+    """Track link click events from portfolio"""
+    # Check rate limit
+    ip_address = request.client.host if request.client else "unknown"
+    if not RateLimiter.check_rate_limit(db, ip_address):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    
+    # Get session info if available
+    session = await get_current_session(request, db)
+    session_id = session.id if session else None
+    user_id = session.user_id if session else None
+    
+    # Track the link click
+    AnalyticsTracker.track_page_view(
+        db, request, 
+        site=link_data.get("site", "portfolio"),
+        path=f"/link-click/{link_data.get('link_type', 'unknown')}",
+        session_id=session_id, 
+        user_id=user_id,
+        additional_data={
+            "event_type": "link_click",
+            "link_type": link_data.get("link_type"),
+            "metadata": link_data.get("metadata", {})
+        }
+    )
+    
+    return {"success": True}
+
+
+@app.post("/track/scroll")
+async def track_scroll(
+    request: Request,
+    scroll_data: Dict[str, Any],
+    db: DBSession = Depends(get_db)
+):
+    """Track scroll milestone events from portfolio"""
+    # Check rate limit
+    ip_address = request.client.host if request.client else "unknown"
+    if not RateLimiter.check_rate_limit(db, ip_address):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    
+    # Get session info if available
+    session = await get_current_session(request, db)
+    session_id = session.id if session else None
+    user_id = session.user_id if session else None
+    
+    # Track the scroll milestone
+    AnalyticsTracker.track_page_view(
+        db, request,
+        site=scroll_data.get("site", "portfolio"),
+        path=f"/scroll/{scroll_data.get('scroll_percentage', 0)}%",
+        session_id=session_id,
+        user_id=user_id,
+        additional_data={
+            "event_type": "scroll_milestone",
+            "scroll_percentage": scroll_data.get("scroll_percentage")
+        }
+    )
+    
+    return {"success": True}
+
+
 @app.post("/track/cad-event")
 async def track_cad_event(
     request: Request,

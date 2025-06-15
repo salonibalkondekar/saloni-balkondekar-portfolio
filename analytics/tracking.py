@@ -20,7 +20,8 @@ class AnalyticsTracker:
         site: str,
         path: str,
         session_id: Optional[str] = None,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
+        additional_data: Optional[Dict[str, Any]] = None
     ) -> None:
         """Track a page view"""
         ip_address = request.client.host if request.client else "unknown"
