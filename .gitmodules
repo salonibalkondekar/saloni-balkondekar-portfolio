@@ -4,3 +4,6 @@
 [submodule "text-to-cad"]
 	path = text-to-cad
 	url = https://github.com/salonibalkondekar/text-to-cad.git
+[submodule "news-gpt"]
+	path = news-gpt
+	url = https://github.com/salonibalkondekar/news-gpt.git
