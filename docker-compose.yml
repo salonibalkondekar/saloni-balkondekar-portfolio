@@ -88,6 +88,19 @@ services:
     restart: unless-stopped
     # No 'ports' are exposed. The proxy handles it.
 
+  #--- News GPT Application Service ---#
+
+  # Service for the news-gpt application
+  news-gpt:
+    build:
+      context: ./news-gpt
+    environment:
+      - NODE_ENV=production
+    env_file: 
+      - ./news-gpt/.env
+    restart: unless-stopped
+    # No 'ports' are exposed. The proxy handles it.
+
   #--- The Public-Facing Reverse Proxy ---#
 
   # The Nginx reverse proxy that routes traffic to the correct service.
@@ -106,6 +119,7 @@ services:
     depends_on:
       - frontend
       - portfolio
+<<<<<<< HEAD
       - analytics
     restart: unless-stopped
 
@@ -114,3 +128,7 @@ volumes:
     driver: local
   backend_temp:
     driver: local
+=======
+      - news-gpt
+    restart: unless-stopped
+>>>>>>> 99370f5 (feat: Add news-gpt service to Docker Compose and configure Nginx routing)
