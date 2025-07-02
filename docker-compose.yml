@@ -119,8 +119,8 @@ services:
     depends_on:
       - frontend
       - portfolio
-<<<<<<< HEAD
       - analytics
+      - news-gpt
     restart: unless-stopped
 
 volumes:
@@ -128,7 +128,3 @@ volumes:
     driver: local
   backend_temp:
     driver: local
-=======
-      - news-gpt
-    restart: unless-stopped
->>>>>>> 99370f5 (feat: Add news-gpt service to Docker Compose and configure Nginx routing)
