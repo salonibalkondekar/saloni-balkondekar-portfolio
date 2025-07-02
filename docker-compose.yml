@@ -106,6 +106,8 @@ services:
   proxy:
     build:
       context: ./nginx-proxy
+      args:
+        CONFIG_FILE: nginx.conf  # Use production config with SSL
     ports:
       - "80:80"    # For initial HTTP traffic and Let's Encrypt validation
       - "443:443"  # For final HTTPS traffic
@@ -114,6 +116,8 @@ services:
       # This allows Nginx to find the SSL certificates that Certbot creates.
       # The ':ro' makes it read-only for better security.
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      # Also mount certbot webroot for certificate challenges
+      - /var/www/certbot:/var/www/certbot:ro
     depends_on:
       - frontend
       - portfolio
