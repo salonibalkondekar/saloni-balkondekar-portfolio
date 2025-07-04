@@ -31,7 +31,7 @@ build_service() {
         echo "📦 Building $service (attempt $attempt/$max_attempts)..."
         
         # Use single-threaded builds to reduce resource usage
-        if timeout 900 docker compose build --progress=plain --parallel 1 $service; then
+        if timeout 900 docker compose --progress=plain --parallel 1 build $service; then
             echo "✅ $service built successfully!"
             return 0
         else
