@@ -99,6 +99,18 @@ services:
     restart: unless-stopped
     # No 'ports' are exposed. The proxy handles it.
 
+  #--- DeepResearch Application Service ---#
+
+  # Service for the deepresearch AI research agent
+  deepresearch:
+    build:
+      context: ./deepresearch
+    environment:
+      - NODE_ENV=production
+    env_file: ./.env
+    restart: unless-stopped
+    # No 'ports' are exposed. The proxy handles it.
+
   #--- The Public-Facing Reverse Proxy ---#
 
   # The Nginx reverse proxy that routes traffic to the correct service.
@@ -123,6 +135,7 @@ services:
       - portfolio
       - analytics
       - news-gpt
+      - deepresearch
     restart: unless-stopped
 
 volumes:

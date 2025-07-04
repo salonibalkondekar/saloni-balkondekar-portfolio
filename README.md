@@ -21,6 +21,13 @@ A comprehensive portfolio platform showcasing expertise in AI and Mechanical Eng
 - **Google OAuth Integration**: Secure authentication with usage limits
 - **Live Code Editor**: Edit generated BadCAD code with real-time preview
 
+### DeepResearch AI Agent
+- **Intelligent Research Planning**: Automatically breaks down research tasks into logical steps
+- **Web Research Automation**: Uses OpenAI Web Search to gather information from across the web
+- **Real-time Progress Tracking**: Watch your research unfold step by step
+- **Comprehensive Results**: Get structured summaries, key findings, and source citations
+- **Modern Next.js Interface**: Clean, responsive UI built with TypeScript and Tailwind CSS
+
 ### Analytics Platform
 - **Real-time Tracking**: Page views, user sessions, CAD events
 - **Admin Dashboard**: Comprehensive analytics and user management
@@ -36,11 +43,12 @@ git clone <repository-url>
 cd saloni-balkondekar-portfolio
 docker compose up --build
 
-# Access the applications:
-# Portfolio: http://localhost:8080
-# Text-to-CAD: http://localhost:8081  
-# Analytics Admin: http://localhost:8082/admin
-# Backend API: http://localhost:8000
+# Access the applications via the proxy:
+# Portfolio: https://salonibalkondekar.codes/
+# Text-to-CAD: https://salonibalkondekar.codes/text-to-cad/
+# DeepResearch: https://salonibalkondekar.codes/deepresearch/
+# News GPT: https://salonibalkondekar.codes/news-gpt/
+# Analytics Admin: https://salonibalkondekar.codes/admin
 ```
 
 ### Option 2: Individual Setup

@@ -7,3 +7,6 @@
 [submodule "news-gpt"]
 	path = news-gpt
 	url = https://github.com/salonibalkondekar/news-gpt.git
+[submodule "deepresearch"]
+	path = deepresearch
+	url = https://github.com/salonibalkondekar/deepresearch.git
