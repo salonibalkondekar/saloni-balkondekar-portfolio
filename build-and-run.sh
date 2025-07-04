@@ -31,7 +31,7 @@ build_service() {
         echo "📦 Building $service (attempt $attempt/$max_attempts)..."
         
         # Use single-threaded builds to reduce resource usage
-        if timeout 900 docker-compose build --progress=plain --parallel 1 $service; then
+        if timeout 900 docker compose build --progress=plain --parallel 1 $service; then
             echo "✅ $service built successfully!"
             return 0
         else
@@ -80,18 +80,18 @@ for service in "${services[@]}"; do
     fi
     
     echo "🚀 Starting $service..."
-    docker-compose up -d $service
+    docker compose up -d $service
     
     # Wait for service to stabilize before proceeding
     echo "⏳ Waiting for $service to stabilize..."
     sleep 15
     
     # Check if service is running
-    if docker-compose ps $service | grep -q "Up"; then
+    if docker compose ps $service | grep -q "Up"; then
         echo "✅ $service is running successfully!"
     else
         echo "⚠️ Warning: $service may not be running properly"
-        docker-compose logs --tail=10 $service
+        docker compose logs --tail=10 $service
     fi
     
     # Brief pause to let system resources recover
@@ -102,4 +102,4 @@ done
 
 echo "🎉 Deployment complete!"
 echo "📊 Container status:"
-docker-compose ps
+docker compose ps
