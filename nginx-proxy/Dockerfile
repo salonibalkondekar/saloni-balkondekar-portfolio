@@ -7,4 +7,4 @@ RUN rm /etc/nginx/conf.d/default.conf
 # For production, use nginx.conf (with SSL)
 ARG CONFIG_FILE=nginx-dev.conf
 COPY ${CONFIG_FILE} /etc/nginx/conf.d/nginx.conf
-COPY text-to-cad-api-error.html /usr/share/nginx/html/
+COPY error.html /usr/share/nginx/html/
