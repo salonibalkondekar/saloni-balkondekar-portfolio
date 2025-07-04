@@ -17,8 +17,8 @@ for service in "${services[@]}"; do
     # Build the service
     docker compose build "$service"
     
-    # Start the service
-    docker compose up -d "$service"
+    # Start the service without dependencies
+    docker compose up -d --no-deps "$service"
     
     # Brief pause to let service stabilize
     sleep 5
