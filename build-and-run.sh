@@ -7,8 +7,8 @@ set -e
 
 echo "🚀 Starting sequential build process..."
 
-# Define services in dependency order
-services=("postgres" "portfolio" "proxy" "analytics" "frontend" "backend")
+# Define services in dependency order (proxy must be last)
+services=("postgres" "analytics" "backend" "frontend" "portfolio" "news-gpt" "deepresearch" "proxy")
 
 # Build and start each service sequentially
 for service in "${services[@]}"; do
