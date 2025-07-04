@@ -41,7 +41,7 @@ services:
   #--- Text-to-CAD Application Services ---#
 
   # Service for the text-to-cad backend (Python/API)
-  backend:
+  text-to-cad-backend:
     build:
       context: ./text-to-cad/backend
     env_file: ./.env  # Variables for the backend will be in this file
@@ -62,16 +62,16 @@ services:
       start_period: 40s
 
   # Service for the text-to-cad frontend (Vue/React)
-  frontend:
+  text-to-cad-frontend:
     build:
       context: ./text-to-cad/frontend
     environment:
       # This tells the frontend container how to reach the backend container.
-      # 'backend' is the service name, and 8000 is the port the backend app listens on.
-      - API_URL=http://backend:8000
+      # 'text-to-cad-backend' is the service name, and 8000 is the port the backend app listens on.
+      - API_URL=http://text-to-cad-backend:8000
       - ANALYTICS_URL=http://analytics:8001
     depends_on:
-      - backend
+      - text-to-cad-backend
       - analytics
     restart: unless-stopped
     # No 'ports' are exposed. The proxy will handle all incoming traffic.
@@ -79,7 +79,7 @@ services:
   #--- Personal Portfolio Website Service ---#
 
   # Service for your personal website (salonibalkondekar.codes)
-  portfolio:
+  main-website:
     build:
       # This points to the Dockerfile inside your submodule folder.
       context: ./saloni-balkondekar-website
@@ -89,7 +89,7 @@ services:
   #--- News GPT Application Service ---#
 
   # Service for the news-gpt application
-  news-gpt:
+  news-gpt-app:
     build:
       context: ./news-gpt
     environment:
@@ -102,7 +102,7 @@ services:
   #--- DeepResearch Application Service ---#
 
   # Service for the deepresearch AI research agent
-  deepresearch:
+  deepresearch-app:
     build:
       context: ./deepresearch
     environment:
@@ -131,11 +131,11 @@ services:
       # Also mount certbot webroot for certificate challenges
       - /var/www/certbot:/var/www/certbot:ro
     depends_on:
-      - frontend
-      - portfolio
+      - text-to-cad-frontend
+      - main-website
       - analytics
-      - news-gpt
-      - deepresearch
+      - news-gpt-app
+      - deepresearch-app
     restart: unless-stopped
 
 volumes:
